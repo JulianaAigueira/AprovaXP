@@ -1,9 +1,10 @@
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, generics
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from django.contrib.auth.models import User  # <-- Faltava essa linha!
 from .models import Subject, Topic, Question, Choice, Profile
-from .serializers import SubjectSerializer, TopicSerializer, QuestionSerializer
+from .serializers import SubjectSerializer, TopicSerializer, QuestionSerializer, RegisterSerializer, ProfileSerializer
 
 # Garçom das Matérias
 class SubjectViewSet(viewsets.ModelViewSet):
@@ -60,4 +61,18 @@ class QuestionViewSet(viewsets.ModelViewSet):
             'current_xp': profile.xp,
             'current_lives': profile.current_lives,
             'explanation': question.explanation # Envia a explicação para o aluno ler
+
         })
+
+# A Recepção: Rota pública para criar novos alunos
+class RegisterView(generics.CreateAPIView):
+    queryset = User.objects.all()
+    permission_classes = [AllowAny] # <- Libera a porta sem precisar de Token!
+    serializer_class = RegisterSerializer
+
+# O Pódio: Rota para ver o Top 10 de XP
+class LeaderboardView(generics.ListAPIView):
+    # Vai no banco, ordena pelo XP decrescente (sinal de menos) e pega os 10 primeiros
+    queryset = Profile.objects.all().order_by('-xp')[:10]
+    serializer_class = ProfileSerializer
+    permission_classes = [IsAuthenticated] # Só quem tem a pulseira VIP pode ver o ranking
